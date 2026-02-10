@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Web Emo</title>
+    <style>
+        :root {
+            --primary: #00eaff; /* Emo Blue */
+            --love: #ff0055;
+            --bg: #050505;
+            --screen: #000;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        /* --- THE BODY --- */
+        .emo-container {
+            position: relative;
+            transition: transform 0.3s;
+        }
+
+        /* Head */
+        .emo-head {
+            position: relative;
+            width: 320px;
+            height: 260px;
+            background: #1a1a1a;
+            border-radius: 45px;
+            border: 4px solid #333;
+            box-shadow: 0 0 30px rgba(0, 234, 255, 0.1);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2;
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        /* Headphones */
+        .headphone {
+            position: absolute;
+            width: 50px;
+            height: 160px;
+            background: #2a2a2a;
+            border-radius: 25px;
+            top: 50%;
+            transform: translateY(-50%);
+            border: 2px solid var(--primary);
+            box-shadow: 0 0 15px var(--primary);
+            transition: all 0.3s;
+        }
+        .hp-left { left: -30px; }
+        .hp-right { right: -30px; }
+
+        /* The Face Screen */
+        .face-screen {
+            width: 280px;
+            height: 220px;
+            background: var(--screen);
+            border-radius: 35px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            box-shadow: inset 0 0 15px rgba(255,255,255,0.05);
+        }
+
+        /* --- EYES --- */
+        .eyes-container {
+            display: flex;
+            gap: 45px;
+            margin-bottom: 25px;
+            transition: all 0.3s;
+        }
+
+        .eye {
+            width: 80px;
+            height: 100px;
+            background: var(--primary);
+            border-radius: 12px;
+            position: relative;
+            box-shadow: 0 0 20px var(--primary);
+            transition: all 0.2s;
+        }
+
+        .pupil {
+            width: 35px;
+            height: 35px;
+            background: #fff;
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            border-radius: 6px;
+            transition: all 0.1s;
+        }
+
+        /* --- EXPRESSIONS (CSS Classes) --- */
+        
+        /* Happy: Upside down U shape */
+        .happy .eye {
+            height: 60px;
+            border-radius: 50% 50% 10% 10%;
+            background: transparent;
+            border: 8px solid var(--primary);
+            border-bottom: none;
+            box-shadow: 0 -5px 15px var(--primary);
+        }
+        .happy .pupil { opacity: 0; }
+
+        /* Angry: Slanted */
+        .angry .eye {
+            clip-path: polygon(0 20%, 100% 0, 100% 100%, 0 100%);
+            height: 80px;
+            background: #ff3333;
+            box-shadow: 0 0 20px #ff3333;
+        }
+
+        /* Dead: X shape */
+        .dead .eye {
+            background: transparent;
+            box-shadow: none;
+            width: 80px; height: 80px;
+        }
+        .dead .pupil { opacity: 0; }
+        .dead .eye::before, .dead .eye::after {
+            content: ''; position: absolute;
+            width: 100%; height: 10px;
+            background: #ff0000;
+            top: 50%; left: 0;
+            box-shadow: 0 0 10px #ff0000;
+        }
+        .dead .eye::before { transform: rotate(45deg); }
+        .dead .eye::after { transform: rotate(-45deg); }
+
+        /* Love: Pink Color */
+        .love .eye {
+            background: var(--love);
+            box-shadow: 0 0 25px var(--love);
+            border-radius: 50%;
+            height: 80px; width: 80px;
+        }
+
+        /* --- MOUTH --- */
+        .mouth {
+            width: 40px;
+            height: 6px;
+            background: var(--primary);
+            border-radius: 10px;
+            transition: all 0.2s;
+            box-shadow: 0 0 10px var(--primary);
+        }
+
+        /* --- BODY ANIMATIONS --- */
+        
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+
+        @keyframes dieAnim {
+            0% { transform: scale(1) rotate(0deg); }
+            20% { transform: scale(1.1) rotate(-10deg); }
+            40% { transform: scale(0.9) rotate(10deg); }
+            100% { transform: scale(0.8) translateY(50px) rotate(90deg); opacity: 0.7; filter: grayscale(1); }
+        }
+
+        @keyframes danceAnim {
+            0% { transform: rotate(0deg); }
+            25% { transform: rotate(10deg) translateY(-10px); }
+            50% { transform: rotate(0deg) translateY(0); }
+            75% { transform: rotate(-10deg) translateY(-10px); }
+            100% { transform: rotate(0deg); }
+        }
+
+        /* --- UTILS --- */
+        #inputVideo {
+            position: absolute; top: 0; left: 0; opacity: 0; pointer-events: none;
+        }
+
+        #overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            text-align: center;
+        }
+        
+        .btn {
+            background: var(--primary);
+            color: black;
+            padding: 15px 40px;
+            border: none;
+            border-radius: 30px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 20px;
+            box-shadow: 0 0 20px var(--primary);
+            transition: 0.2s;
+        }
+        .btn:hover { transform: scale(1.1); }
+
+        .commands { margin-top: 20px; color: #888; font-size: 0.9rem; }
+        .commands span { color: var(--primary); display: block; margin: 5px; }
+
+    </style>
+</head>
+<body>
+
+    <!-- Overlay -->
+    <div id="overlay">
+        <h1 style="color:white; text-shadow: 0 0 10px var(--primary);">EMO AI</h1>
+        <p style="color:#ccc;">I can see you, hear you, and dance.</p>
+        <button class="btn" onclick="initializeSystem()">POWER ON</button>
+        <div class="commands">
+            <p>COMMANDS TO TRY:</p>
+            <span>"Bang!" (Shoot him)</span>
+            <span>"Dance for me"</span>
+            <span>"I love you"</span>
+            <span>"Change Color"</span>
+            <span>"Who are you?"</span>
+        </div>
+    </div>
+
+    <!-- The Robot -->
+    <div class="emo-container" id="emo-body">
+        <div class="emo-head">
+            <div class="headphone hp-left"></div>
+            <div class="headphone hp-right"></div>
+            
+            <div class="face-screen" id="face">
+                <div class="eyes-container" id="eyes-wrapper">
+                    <div class="eye" id="eye-left"><div class="pupil"></div></div>
+                    <div class="eye" id="eye-right"><div class="pupil"></div></div>
+                </div>
+                <div class="mouth" id="mouth"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="status" style="margin-top: 20px; color: #555; font-size: 12px;">System Offline</div>
+
+    <!-- Hidden Video -->
+    <video id="inputVideo" width="320" height="240" autoplay muted playsinline></video>
+
+    <!-- Face Tracking Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clmtrackr/1.1.2/clmtrackr.min.js"></script>
+
+    <script>
+        // --- Elements ---
+        const robotBody = document.getElementById('emo-body');
+        const faceScreen = document.getElementById('face');
+        const eyesWrapper = document.getElementById('eyes-wrapper');
+        const leftPupil = document.querySelector('#eye-left .pupil');
+        const rightPupil = document.querySelector('#eye-right .pupil');
+        const mouth = document.getElementById('mouth');
+        const statusText = document.getElementById('status');
+        
+        let ctracker;
+        let isAlive = true;
+        let trackingLoopId;
+
+        // Speech
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const recognition = new SpeechRecognition();
+        const synth = window.speechSynthesis;
+
+        recognition.continuous = true;
+        recognition.lang = 'en-US';
+
+        // --- Core Functions ---
+
+        async function initializeSystem() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                document.getElementById('inputVideo').srcObject = stream;
+                document.getElementById('overlay').style.display = 'none';
+                
+                // Start Face Tracking
+                ctracker = new clm.tracker();
+                ctracker.init();
+                ctracker.start(document.getElementById('inputVideo'));
+                
+                startTrackingLoop();
+                startListening();
+                
+                // Idle Animation
+                robotBody.style.animation = "float 4s ease-in-out infinite";
+                
+                playSound('startup');
+                speak("System online. I see you.");
+
+            } catch (err) {
+                alert("Please allow Camera access!");
+            }
+        }
+
+        // --- Face Tracking ---
+
+        function startTrackingLoop() {
+            if (!isAlive) return;
+
+            trackingLoopId = requestAnimationFrame(startTrackingLoop);
+            let positions = ctracker.getCurrentPosition();
+
+            if (positions) {
+                // Nose position (index 62)
+                const noseX = positions[62][0];
+                const noseY = positions[62][1];
+
+                // Calculate Eye Movement (Inverted X for mirror effect)
+                const xMove = ((noseX / 320) - 0.5) * 60;
+                const yMove = ((noseY / 240) - 0.5) * 50;
+
+                // Move Pupils
+                if (!eyesWrapper.classList.contains('happy') && !eyesWrapper.classList.contains('dead')) {
+                    const transform = `translate(calc(-50% + ${-xMove}px), calc(-50% + ${yMove}px))`;
+                    leftPupil.style.transform = transform;
+                    rightPupil.style.transform = transform;
+                }
+                statusText.innerText = "Tracking Target: Active";
+            } else {
+                statusText.innerText = "Scanning Environment...";
+            }
+        }
+
+        // --- Logic & Animations ---
+
+        function setExpression(type) {
+            // Reset classes
+            eyesWrapper.className = 'eyes-container';
+            robotBody.style.transform = "rotate(0deg)";
+            
+            if (type === 'happy') eyesWrapper.classList.add('happy');
+            if (type === 'angry') eyesWrapper.classList.add('angry');
+            if (type === 'dead') eyesWrapper.classList.add('dead');
+            if (type === 'love') eyesWrapper.classList.add('love');
+        }
+
+        function triggerDie() {
+            if (!isAlive) return;
+            isAlive = false;
+            
+            cancelAnimationFrame(trackingLoopId);
+            
+            // UI Changes
+            setExpression('dead');
+            speak("System Failure. Good bye.");
+            
+            // Animation
+            robotBody.style.animation = "dieAnim 1s forwards";
+            statusText.innerText = "CRITICAL ERROR: SYSTEM DOWN";
+            
+            // Reset logic
+            setTimeout(() => {
+                const revive = confirm("Emo has crashed. Reboot?");
+                if(revive) reboot();
+            }, 4000);
+        }
+
+        function reboot() {
+            isAlive = true;
+            robotBody.style.animation = "float 4s ease-in-out infinite";
+            setExpression('normal');
+            startTrackingLoop();
+            speak("Reboot successful. I am back.");
+        }
+
+        function triggerDance() {
+            speak("Oh yeah. Let's party.");
+            robotBody.style.animation = "danceAnim 0.5s infinite";
+            setExpression('love'); // Hearts while dancing
+            
+            // Change colors randomly
+            let danceInterval = setInterval(() => {
+                let randomColor = '#' + Math.floor(Math.random()*16777215).toString(16);
+                document.documentElement.style.setProperty('--primary', randomColor);
+            }, 500);
+
+            // Stop dancing after 5 seconds
+            setTimeout(() => {
+                clearInterval(danceInterval);
+                robotBody.style.animation = "float 4s ease-in-out infinite";
+                setExpression('normal');
+                document.documentElement.style.setProperty('--primary', '#00eaff');
+                speak("That was fun.");
+            }, 5000);
+        }
+
+        // --- Speech Processing ---
+
+        function startListening() {
+            recognition.start();
+            recognition.onresult = (e) => {
+                const cmd = e.results[e.results.length-1][0].transcript.toLowerCase();
+                console.log("Heard:", cmd);
+                processCommand(cmd);
+            };
+            recognition.onend = () => { if(isAlive) recognition.start(); }
+        }
+
+        function processCommand(cmd) {
+            // Shooting / Dying
+            if (cmd.includes('bang') || cmd.includes('shoot') || cmd.includes('die') || cmd.includes('kill')) {
+                triggerDie();
+                return;
+            }
+
+            // Dancing
+            if (cmd.includes('dance') || cmd.includes('party')) {
+                triggerDance();
+                return;
+            }
+
+            // Emotions
+            if (cmd.includes('love') || cmd.includes('cute')) {
+                setExpression('love');
+                speak("I love you too human.");
+                setTimeout(() => setExpression('normal'), 3000);
+                return;
+            }
+
+            if (cmd.includes('happy') || cmd.includes('smile')) {
+                setExpression('happy');
+                speak("I am very happy.");
+                setTimeout(() => setExpression('normal'), 3000);
+                return;
+            }
+
+            if (cmd.includes('angry')) {
+                setExpression('angry');
+                speak("I am not happy with you.");
+                setTimeout(() => setExpression('normal'), 3000);
+                return;
+            }
+
+            // Colors
+            if (cmd.includes('red')) document.documentElement.style.setProperty('--primary', '#ff0055');
+            if (cmd.includes('green')) document.documentElement.style.setProperty('--primary', '#00ff00');
+            if (cmd.includes('blue')) document.documentElement.style.setProperty('--primary', '#00eaff');
+        }
+
+        // --- Speech Synthesis ---
+        function speak(text) {
+            const utter = new SpeechSynthesisUtterance(text);
+            utter.pitch = 1.3; 
+            utter.rate = 1.1;
+            
+            // Mouth Animation
+            utter.onstart = () => {
+                mouth.style.width = "10px"; mouth.style.height = "10px"; mouth.style.borderRadius="50%";
+                let talking = setInterval(() => {
+                    mouth.style.width = (Math.random()*40+10) + "px";
+                }, 100);
+                utter.onend = () => {
+                    clearInterval(talking);
+                    mouth.style.width = "40px"; mouth.style.height = "6px"; mouth.style.borderRadius="10px";
+                };
+            };
+            synth.speak(utter);
+        }
+        
+        // --- Helper Sounds ---
+        function playSound(type) {
+            // Simple oscillator beeps since we don't have audio files
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            
+            if (type === 'startup') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(200, ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(600, ctx.currentTime + 0.5);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+                osc.start(); osc.stop(ctx.currentTime + 0.5);
+            }
+        }
+
+    </script>
+</body>
+</html>
