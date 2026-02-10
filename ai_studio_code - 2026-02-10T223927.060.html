@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Emo Robot</title>
+    <style>
+        :root {
+            --primary: #0ff;
+            --bg: #111;
+            --screen: #000;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: white;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        /* The Robot Head */
+        .emo-head {
+            position: relative;
+            width: 300px;
+            height: 250px;
+            background: #222;
+            border-radius: 40px;
+            border: 5px solid #333;
+            box-shadow: 0 0 20px rgba(0,0,0,0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: transform 0.2s;
+        }
+
+        /* The Headphones */
+        .headphone {
+            position: absolute;
+            width: 40px;
+            height: 150px;
+            background: #444;
+            border-radius: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            border: 2px solid var(--primary);
+        }
+        .hp-left { left: -25px; }
+        .hp-right { right: -25px; }
+
+        /* The Screen (Face) */
+        .face-screen {
+            width: 260px;
+            height: 210px;
+            background: var(--screen);
+            border-radius: 30px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            box-shadow: inset 0 0 20px rgba(0, 255, 255, 0.2);
+        }
+
+        /* Eyes Container */
+        .eyes-container {
+            display: flex;
+            gap: 40px;
+            margin-bottom: 20px;
+        }
+
+        /* The Eye */
+        .eye {
+            width: 70px;
+            height: 90px;
+            background: var(--primary);
+            border-radius: 15px;
+            position: relative;
+            box-shadow: 0 0 15px var(--primary);
+            transition: height 0.1s; /* For blinking */
+        }
+
+        /* The Pupil (The part that moves) */
+        .pupil {
+            width: 30px;
+            height: 30px;
+            background: #fff;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border-radius: 5px;
+        }
+
+        /* The Mouth */
+        .mouth {
+            width: 50px;
+            height: 5px;
+            background: var(--primary);
+            border-radius: 5px;
+            transition: all 0.1s;
+            box-shadow: 0 0 10px var(--primary);
+        }
+
+        /* Hidden Video for processing */
+        #inputVideo {
+            position: absolute;
+            top: 0;
+            left: 0;
+            opacity: 0;
+            pointer-events: none;
+            width: 320px;
+            height: 240px;
+        }
+
+        /* Start Overlay */
+        #start-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+        button {
+            padding: 15px 30px;
+            font-size: 20px;
+            background: var(--primary);
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        .status {
+            margin-top: 20px;
+            color: #888;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Start Button Overlay -->
+    <div id="start-overlay">
+        <h1>EMO WEB BOT</h1>
+        <p>I need Camera & Microphone access to see and hear you.</p>
+        <button onclick="startEmo()">WAKE ME UP</button>
+    </div>
+
+    <!-- Emo Robot HTML -->
+    <div class="emo-head">
+        <div class="headphone hp-left"></div>
+        <div class="headphone hp-right"></div>
+        
+        <div class="face-screen">
+            <div class="eyes-container">
+                <div class="eye" id="eye-left"><div class="pupil"></div></div>
+                <div class="eye" id="eye-right"><div class="pupil"></div></div>
+            </div>
+            <div class="mouth" id="mouth"></div>
+        </div>
+    </div>
+
+    <div class="status" id="status-text">Sleep Mode</div>
+
+    <!-- Hidden Video Element for Tracking -->
+    <video id="inputVideo" width="320" height="240" autoplay muted playsinline></video>
+
+    <!-- Load Face Tracking Library (clmtrackr) from CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clmtrackr/1.1.2/clmtrackr.min.js"></script>
+
+    <script>
+        // --- Variables ---
+        const video = document.getElementById('inputVideo');
+        const overlay = document.getElementById('start-overlay');
+        const statusText = document.getElementById('status-text');
+        
+        // Face Elements
+        const leftPupil = document.querySelector('#eye-left .pupil');
+        const rightPupil = document.querySelector('#eye-right .pupil');
+        const mouth = document.getElementById('mouth');
+        const eyes = document.querySelectorAll('.eye');
+
+        // Tracking Setup
+        let ctracker;
+        let trackingStarted = false;
+
+        // Speech Setup
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const recognition = new SpeechRecognition();
+        const synth = window.speechSynthesis;
+
+        recognition.continuous = true;
+        recognition.lang = 'en-US';
+        recognition.interimResults = false;
+
+        // --- Initialization ---
+
+        async function startEmo() {
+            try {
+                // 1. Get Camera Stream
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                video.srcObject = stream;
+                
+                // 2. Hide Overlay
+                overlay.style.display = 'none';
+                statusText.innerText = "Initializing systems...";
+
+                // 3. Start Face Tracker
+                startTracker();
+
+                // 4. Start Listening
+                startListening();
+
+                speak("System online. Hello, I am ready.");
+
+            } catch (err) {
+                alert("Error: " + err.message + ". Please allow camera permissions.");
+            }
+        }
+
+        // --- Face Tracking Logic ---
+
+        function startTracker() {
+            ctracker = new clm.tracker();
+            ctracker.init();
+            ctracker.start(video);
+            trackingLoop();
+        }
+
+        function trackingLoop() {
+            requestAnimationFrame(trackingLoop);
+            
+            let positions = ctracker.getCurrentPosition();
+            
+            if (positions) {
+                // positions[62] is roughly the nose bridge/center of face
+                // Map the video coordinates (320x240) to eye movement CSS (-20px to 20px)
+                
+                const noseX = positions[62][0];
+                const noseY = positions[62][1];
+
+                // Calculate percentages
+                // Video is mirrored usually, so we invert X calculation
+                const xMove = ((noseX / 320) - 0.5) * 50; // Range approx -25 to 25
+                const yMove = ((noseY / 240) - 0.5) * 40; // Range approx -20 to 20
+
+                // Invert X because camera acts like a mirror
+                updateEyes(-xMove, yMove);
+                
+                statusText.innerText = "Tracking Face...";
+            } else {
+                // Center eyes if no face
+                updateEyes(0, 0);
+                statusText.innerText = "Searching for face...";
+            }
+        }
+
+        function updateEyes(x, y) {
+            // Apply translation to pupils
+            // Clamp values so they don't go outside the eye
+            const clampedX = Math.max(-15, Math.min(15, x));
+            const clampedY = Math.max(-15, Math.min(15, y));
+
+            leftPupil.style.transform = `translate(calc(-50% + ${clampedX}px), calc(-50% + ${clampedY}px))`;
+            rightPupil.style.transform = `translate(calc(-50% + ${clampedX}px), calc(-50% + ${clampedY}px))`;
+        }
+
+        // --- Blinking Animation ---
+        setInterval(() => {
+            eyes.forEach(eye => eye.style.height = '10px'); // Close
+            setTimeout(() => {
+                eyes.forEach(eye => eye.style.height = '90px'); // Open
+            }, 200);
+        }, 4000); // Blink every 4 seconds
+
+        // --- Speech Recognition (Listening) ---
+
+        function startListening() {
+            recognition.start();
+            
+            recognition.onresult = (event) => {
+                const last = event.results.length - 1;
+                const command = event.results[last][0].transcript.toLowerCase().trim();
+                
+                console.log("Heard: " + command);
+                processCommand(command);
+            };
+
+            recognition.onend = () => {
+                // Auto restart if it stops
+                if(overlay.style.display === 'none') recognition.start();
+            };
+        }
+
+        function processCommand(cmd) {
+            if (cmd.includes('hello') || cmd.includes('hi')) {
+                speak("Hello there human.");
+            } else if (cmd.includes('name') || cmd.includes('who are you')) {
+                speak("I am Emo, your web assistant.");
+            } else if (cmd.includes('blue')) {
+                changeColor('#0ff');
+                speak("Changing color to blue.");
+            } else if (cmd.includes('red')) {
+                changeColor('#ff0055');
+                speak("Changing color to red.");
+            } else if (cmd.includes('green')) {
+                changeColor('#0f0');
+                speak("Green is a nice color.");
+            } else if (cmd.includes('stop')) {
+                speak("Okay, I will stop tracking.");
+                ctracker.stop();
+            } else {
+                speak("I didn't understand that.");
+            }
+        }
+
+        function changeColor(color) {
+            document.documentElement.style.setProperty('--primary', color);
+        }
+
+        // --- Speech Synthesis (Speaking) ---
+
+        function speak(text) {
+            if (synth.speaking) {
+                console.error('speechSynthesis.speaking');
+                return;
+            }
+            
+            const utterThis = new SpeechSynthesisUtterance(text);
+            
+            // Try to select a robotic voice
+            const voices = synth.getVoices();
+            const robotVoice = voices.find(v => v.name.includes('Google US English')) || voices[0];
+            utterThis.voice = robotVoice;
+            utterThis.pitch = 1.2; // Higher pitch for robot feel
+            utterThis.rate = 1;
+
+            // Animate mouth while speaking
+            utterThis.onstart = () => {
+                mouth.style.height = "20px";
+                mouth.style.width = "20px";
+                mouth.style.borderRadius = "50%";
+                mouthAnimateInterval = setInterval(() => {
+                   mouth.style.width = (Math.random() * 30 + 10) + 'px'; 
+                }, 100);
+            };
+
+            utterThis.onend = () => {
+                clearInterval(mouthAnimateInterval);
+                mouth.style.height = "5px";
+                mouth.style.width = "50px";
+                mouth.style.borderRadius = "5px";
+            };
+
+            synth.speak(utterThis);
+        }
+        
+        let mouthAnimateInterval;
+
+    </script>
+</body>
+</html>
